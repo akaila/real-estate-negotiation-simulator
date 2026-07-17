@@ -44,6 +44,8 @@ from google.adk.tools.mcp_tool.mcp_toolset import (
 from google.adk.tools.tool_context import ToolContext
 from pydantic import BaseModel, Field, ValidationError
 
+from m3_adk_multiagents.lmstudio_config import setup_lmstudio_model
+
 # Buyer is allowed to call only pricing tools — never the seller-private
 # inventory tools (information asymmetry enforced via callback, not trust).
 _BUYER_ALLOWED_TOOLS = {"get_market_price", "calculate_discount", "get_property_tax_estimate"}
@@ -69,9 +71,7 @@ PROPERTY_ADDRESS = "742 Evergreen Terrace, Austin, TX 78701"
 LISTING_PRICE = 485_000
 BUYER_BUDGET = 460_000
 
-# ADK provider-style model id.
-# Important: plain "gpt-4o" is not resolved by ADK registry in this setup.
-OPENAI_MODEL = "openai/gpt-4o"
+OPENAI_MODEL = setup_lmstudio_model()
 
 APP_NAME = "real_estate_negotiation_buyer"
 

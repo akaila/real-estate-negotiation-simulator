@@ -39,6 +39,10 @@ if str(REPO_ROOT) not in sys.path:
 # Load OPENAI_API_KEY and other local vars from repo-root .env.
 load_dotenv(REPO_ROOT / ".env")
 
+from m3_adk_multiagents.lmstudio_config import configure_openai_compat_env
+
+configure_openai_compat_env()
+
 from m3_adk_multiagents.buyer_adk import BuyerAgentADK
 
 
@@ -66,10 +70,6 @@ async def main() -> None:
         help="Use A2A message/stream and print every TaskStatus / TaskArtifact update.",
     )
     args = parser.parse_args()
-
-    if not os.environ.get("OPENAI_API_KEY"):
-        print("OPENAI_API_KEY is not set. Set it before running this demo.")
-        raise SystemExit(1)
 
     # Step 1: Create a buyer offer locally via ADK + MCP tool calls.
     # The buyer agent connects to the pricing MCP server, calls get_market_price

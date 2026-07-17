@@ -13,6 +13,8 @@ Run:
 
 import asyncio
 import os
+
+from m3_adk_multiagents.lmstudio_config import setup_lmstudio_model
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -23,8 +25,7 @@ from google.genai.types import Content, Part
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(REPO_ROOT / ".env")
-
-MODEL = "openai/gpt-4o"
+MODEL = setup_lmstudio_model()
 APP = "demo_sequential"
 
 
@@ -65,9 +66,6 @@ def build() -> SequentialAgent:
 
 
 async def main() -> None:
-    if not os.environ.get("OPENAI_API_KEY"):
-        print("OPENAI_API_KEY not set"); return
-
     pipeline = build()
     sessions = InMemorySessionService()
     session = await sessions.create_session(app_name=APP, user_id="demo", session_id="s1")

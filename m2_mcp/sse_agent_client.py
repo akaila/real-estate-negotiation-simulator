@@ -2,7 +2,7 @@
 SSE MCP Agent Client
 ====================
 An LLM-powered agent that connects to our real estate MCP servers running
-in SSE (HTTP) mode and lets GPT-4o decide which tools to call based on
+in SSE (HTTP) mode and lets a local LM Studio model decide which tools to call based on
 your natural language query.
 
 WHY SSE?
@@ -39,7 +39,9 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import sys
+from pathlib import Path
 from typing import Any
 
 from openai import AsyncOpenAI
@@ -69,14 +71,12 @@ def _load_env_file_if_present(env_path: str = ".env") -> None:
         pass
 
 
-_load_env_file_if_present()
+REPO_ROOT = Path(__file__).resolve().parents[1]
+_load_env_file_if_present(str(REPO_ROOT / ".env"))
 
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
-if not OPENAI_API_KEY or OPENAI_API_KEY.startswith("sk-your"):
-    print("ERROR: OPENAI_API_KEY not set (or is a placeholder).")
-    sys.exit(1)
-
-OPENAI_MODEL = "gpt-4o"
+LMSTUDIO_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://localhost:1234/v1")
+LMSTUDIO_MODEL = os.environ.get("LMSTUDIO_MODEL")
+PREFERRED_LOCAL_MODEL = "google/gemma-4-26b-a4b"
 
 SAMPLE_QUERIES_PRICING = [
     "What is the market price for 742 Evergreen Terrace, Austin, TX 78701? It's a single-family home.",
@@ -125,6 +125,36 @@ def _parse_tool_result(result: Any) -> str:
     return "{}"
 
 
+_LOCAL_CHANNEL_TOKEN_RE = re.compile(r"<\|[^|]+\|>")
+
+
+def _sanitize_message_for_local_api(message: dict) -> dict:
+    """Remove local-model channel tokens from content before round-tripping."""
+    cleaned = dict(message)
+    content = cleaned.get("content")
+    if isinstance(content, str):
+        cleaned["content"] = _LOCAL_CHANNEL_TOKEN_RE.sub("", content).strip()
+    return cleaned
+
+
+async def _resolve_local_model(client: AsyncOpenAI) -> str:
+    if LMSTUDIO_MODEL:
+        return LMSTUDIO_MODEL
+
+    models = await client.models.list()
+    available_models = [item.id for item in models.data]
+    if not available_models:
+        raise RuntimeError(
+            f"No local models were reported by {LMSTUDIO_BASE_URL}. Load a model in LM Studio or set LMSTUDIO_MODEL."
+        )
+
+    print(f"[Agent] Available local models: {', '.join(available_models)}")
+    if PREFERRED_LOCAL_MODEL in available_models:
+        return PREFERRED_LOCAL_MODEL
+
+    return available_models[0]
+
+
 # ─── Agent loop for a single SSE server ───────────────────────────────────────
 
 async def run_agent_on_server(
@@ -164,7 +194,7 @@ async def run_agent(
 ) -> str:
     """
     Agentic loop: connect to real estate MCP servers via SSE,
-    let GPT-4o decide which tools to call, execute them, produce an answer.
+    let a local model decide which tools to call, execute them, produce an answer.
     """
     print()
     print("=" * 65)
@@ -217,7 +247,11 @@ async def run_agent(
         return ""
 
     # ── Agent loop ────────────────────────────────────────────────────
-    client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+    lmstudio_api_key = os.environ.get("LMSTUDIO_API_KEY", "").strip() or "lm-studio"
+    client = AsyncOpenAI(api_key=lmstudio_api_key, base_url=LMSTUDIO_BASE_URL)
+    model_name = await _resolve_local_model(client)
+    print(f"[Agent] Using local model: {model_name}")
+
     messages: list[dict] = [
         {
             "role": "system",
@@ -233,10 +267,10 @@ async def run_agent(
 
     max_iterations = 5
     for iteration in range(1, max_iterations + 1):
-        print(f"[Agent] Iteration {iteration}: calling GPT-4o...")
+        print(f"[Agent] Iteration {iteration}: calling local model...")
 
         response = await client.chat.completions.create(
-            model=OPENAI_MODEL,
+            model=model_name,
             messages=messages,
             tools=openai_tools,
             temperature=0.2,
@@ -245,7 +279,8 @@ async def run_agent(
         choice = response.choices[0]
 
         if choice.finish_reason == "tool_calls" and choice.message.tool_calls:
-            messages.append(choice.message.model_dump())
+            assistant_message = choice.message.model_dump(exclude_none=True)
+            messages.append(_sanitize_message_for_local_api(assistant_message))
 
             for tool_call in choice.message.tool_calls:
                 fn_name = tool_call.function.name
@@ -291,7 +326,7 @@ async def run_agent(
         "content": "Please summarize your findings based on the data you've gathered so far.",
     })
     response = await client.chat.completions.create(
-        model=OPENAI_MODEL,
+        model=model_name,
         messages=messages,
         temperature=0.2,
     )

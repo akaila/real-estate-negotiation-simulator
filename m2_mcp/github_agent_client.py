@@ -1,8 +1,9 @@
 """
 GitHub MCP Agent Client
 ========================
-An LLM-powered agent that connects to GitHub's MCP server and uses
-GPT-4o to decide which tools to call based on your natural language query.
+An LLM-powered agent that connects to GitHub's MCP server and uses a
+local LM Studio model to decide which tools to call based on your natural
+language query.
 
 WHY THIS EXISTS:
   This demonstrates the SAME agentic pattern used by our buyer and seller
@@ -22,11 +23,11 @@ WHY THIS EXISTS:
 PREREQUISITES:
   1. Node.js 18+ installed (for npx)
   2. GITHUB_TOKEN — GitHub Personal Access Token
-  3. OPENAI_API_KEY — OpenAI API key
+    3. LM Studio running locally with a loaded model
 
 HOW TO RUN:
   export GITHUB_TOKEN=ghp_your_token_here
-  export OPENAI_API_KEY=sk-your_key_here
+    export LMSTUDIO_MODEL=google/gemma-4-26b-a4b
   python m2_mcp/github_agent_client.py
 
   # Or with a custom query:
@@ -79,20 +80,15 @@ _load_env_file_if_present()
 # ─── Validation ───────────────────────────────────────────────────────────────
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip()
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
+LMSTUDIO_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://localhost:1234/v1")
+LMSTUDIO_MODEL = os.environ.get("LMSTUDIO_MODEL")
+PREFERRED_LOCAL_MODEL = "google/gemma-4-26b-a4b"
 
 _PLACEHOLDER_PREFIXES = ("your_token", "ghp_your", "<your", "TOKEN_HERE")
 if not GITHUB_TOKEN or any(GITHUB_TOKEN.lower().startswith(p) for p in _PLACEHOLDER_PREFIXES):
     print("ERROR: GITHUB_TOKEN not set (or is a placeholder).")
     print("   Get one at: GitHub -> Settings -> Developer Settings -> Personal Access Tokens")
     sys.exit(1)
-
-if not OPENAI_API_KEY or OPENAI_API_KEY.startswith("sk-your"):
-    print("ERROR: OPENAI_API_KEY not set (or is a placeholder).")
-    sys.exit(1)
-
-
-OPENAI_MODEL = "gpt-4o"
 
 # ─── Sample queries ───────────────────────────────────────────────────────────
 # Each query exercises a different set of GitHub MCP tools.
@@ -150,6 +146,24 @@ def _parse_tool_result(result: Any) -> str:
     return "{}"
 
 
+async def _resolve_local_model(client: AsyncOpenAI) -> str:
+    if LMSTUDIO_MODEL:
+        return LMSTUDIO_MODEL
+
+    models = await client.models.list()
+    available_models = [item.id for item in models.data]
+    if not available_models:
+        raise RuntimeError(
+            f"No local models were reported by {LMSTUDIO_BASE_URL}. Load a model in LM Studio or set LMSTUDIO_MODEL."
+        )
+
+    print(f"[Agent] Available local models: {', '.join(available_models)}")
+    if PREFERRED_LOCAL_MODEL in available_models:
+        return PREFERRED_LOCAL_MODEL
+
+    return available_models[0]
+
+
 # ─── Agent loop ───────────────────────────────────────────────────────────────
 
 async def run_agent(query: str) -> str:
@@ -200,7 +214,13 @@ async def run_agent(query: str) -> str:
             tools_by_name = {t.name: t for t in mcp_tools}
 
             # ── 3. Start the agent loop ───────────────────────────────────
-            client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+            lmstudio_api_key = os.environ.get("LMSTUDIO_API_KEY", "").strip() or "lm-studio"
+            client = AsyncOpenAI(
+                api_key=lmstudio_api_key,
+                base_url=LMSTUDIO_BASE_URL,
+            )
+            model_name = await _resolve_local_model(client)
+            print(f"[Agent] Using local model: {model_name}")
             messages: list[dict] = [
                 {
                     "role": "system",
@@ -218,10 +238,10 @@ async def run_agent(query: str) -> str:
             # Agent loop — up to 5 iterations of tool calling
             max_iterations = 5
             for iteration in range(1, max_iterations + 1):
-                print(f"[Agent] Iteration {iteration}: calling GPT-4o...")
+                print(f"[Agent] Iteration {iteration}: calling local model...")
 
                 response = await client.chat.completions.create(
-                    model=OPENAI_MODEL,
+                    model=model_name,
                     messages=messages,
                     tools=openai_tools,
                     temperature=0.2,
@@ -277,7 +297,7 @@ async def run_agent(query: str) -> str:
                 "content": "Please summarize your findings based on the data you've gathered so far.",
             })
             response = await client.chat.completions.create(
-                model=OPENAI_MODEL,
+                model=model_name,
                 messages=messages,
                 temperature=0.2,
             )

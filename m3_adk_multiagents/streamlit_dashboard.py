@@ -36,6 +36,11 @@ if str(REPO_ROOT) not in sys.path:
 from dotenv import load_dotenv
 load_dotenv(REPO_ROOT / ".env")
 
+from m3_adk_multiagents.lmstudio_config import configure_openai_compat_env, resolve_model_id
+
+LMSTUDIO_BASE_URL = configure_openai_compat_env()
+ACTIVE_MODEL = resolve_model_id().removeprefix("openai/")
+
 import httpx
 from a2a.client import A2AClient, A2ACardResolver
 from a2a.types import Message, MessageSendParams, Role, SendMessageRequest, TextPart
@@ -188,11 +193,8 @@ with st.sidebar:
     seller_url = st.text_input("Seller A2A URL", value="http://127.0.0.1:9102")
     max_rounds = st.slider("Max Rounds", min_value=1, max_value=10, value=5)
 
-    api_key_set = bool(os.environ.get("OPENAI_API_KEY"))
-    if api_key_set:
-        st.success("OPENAI_API_KEY is set")
-    else:
-        st.error("OPENAI_API_KEY not found in .env")
+    st.success(f"LM Studio endpoint: {LMSTUDIO_BASE_URL}")
+    st.info(f"Model: {ACTIVE_MODEL}")
 
     st.markdown("---")
     st.markdown("""
@@ -204,7 +206,7 @@ with st.sidebar:
     2. Click **Start Negotiation** below
     """)
 
-    start_button = st.button("🚀 Start Negotiation", type="primary", disabled=not api_key_set)
+    start_button = st.button("🚀 Start Negotiation", type="primary")
 
 # Main content area
 if "rounds_data" not in st.session_state:

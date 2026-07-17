@@ -3,8 +3,8 @@ Demo 02 — Trace the model <-> host <-> server tool loop
 ========================================================
 Shows the full MCP tool-calling loop end to end with timestamps and a
 human-readable narration of every step. Uses the `mcp` SDK for the
-session (so we don't reinvent the handshake from demo 01) and OpenAI
-function calling for the model side.
+session (so we don't reinvent the handshake from demo 01) and an
+OpenAI-compatible LM Studio endpoint for the model side.
 
 Run:
     python m2_mcp/demos/02_tool_loop_trace.py
@@ -37,7 +37,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(REPO_ROOT / ".env")
 
 PRICING_SERVER = REPO_ROOT / "m2_mcp" / "pricing_server.py"
-
+LMSTUDIO_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://localhost:1234/v1")
+LMSTUDIO_MODEL = os.environ.get("LMSTUDIO_MODEL")
+PREFERRED_LOCAL_MODEL = "google/gemma-4-26b-a4b"
 
 _t0 = time.monotonic()
 
@@ -57,10 +59,25 @@ def _mcp_tool_to_openai(tool) -> dict:
     }
 
 
-async def main() -> None:
-    if not os.environ.get("OPENAI_API_KEY"):
-        print("OPENAI_API_KEY not set"); return
+async def _resolve_local_model(client: AsyncOpenAI) -> str:
+    if LMSTUDIO_MODEL:
+        return LMSTUDIO_MODEL
 
+    models = await client.models.list()
+    available_models = [item.id for item in models.data]
+    if not available_models:
+        raise RuntimeError(
+            f"No local models were reported by {LMSTUDIO_BASE_URL}. Load a model in LM Studio or set LMSTUDIO_MODEL."
+        )
+
+    log("HOST", f"available local models: {', '.join(available_models)}")
+    if PREFERRED_LOCAL_MODEL in available_models:
+        return PREFERRED_LOCAL_MODEL
+
+    return available_models[0]
+
+
+async def main() -> None:
     log("HOST", "connecting to MCP server (stdio subprocess)")
     server_params = StdioServerParameters(
         command=sys.executable, args=[str(PRICING_SERVER)]
@@ -74,16 +91,27 @@ async def main() -> None:
 
             openai_tools = [_mcp_tool_to_openai(t) for t in catalog.tools]
             messages = [
-                {"role": "system", "content": "You are a real estate pricing analyst. Use tools to answer."},
-                {"role": "user", "content": "What is the estimated value of 742 Evergreen Terrace, Austin, TX 78701?"},
+                {
+                    "role": "system",
+                    "content": "You are a real estate pricing analyst. Use tools to answer.",
+                },
+                {
+                    "role": "user",
+                    "content": "What is the estimated value of 742 Evergreen Terrace, Austin, TX 78701?",
+                },
             ]
 
-            client = AsyncOpenAI()
+            client = AsyncOpenAI(
+                api_key=os.environ.get("LMSTUDIO_API_KEY", "lm-studio"),
+                base_url=LMSTUDIO_BASE_URL,
+            )
+            model_name = await _resolve_local_model(client)
+            log("HOST", f"using local model: {model_name}")
             log("MODEL", "receiving prompt + tool catalog")
 
             for hop in range(4):
                 resp = await client.chat.completions.create(
-                    model="gpt-4o", messages=messages, tools=openai_tools
+                    model=model_name, messages=messages, tools=openai_tools
                 )
                 choice = resp.choices[0].message
                 if choice.tool_calls:
@@ -96,16 +124,19 @@ async def main() -> None:
                         log("SERVER", "returned CallToolResult")
                         log("HOST", "injecting tool_result back into model context")
                         messages.append(choice.model_dump(exclude_none=True))
-                        messages.append({
-                            "role": "tool",
-                            "tool_call_id": call.id,
-                            "content": result_text,
-                        })
+                        messages.append(
+                            {
+                                "role": "tool",
+                                "tool_call_id": call.id,
+                                "content": result_text,
+                            }
+                        )
                 else:
                     log("MODEL", "emitted final assistant text")
                     print("\n--- final answer ---")
                     print(choice.content)
                     return
+
             log("HOST", "max hops reached without final answer")
 
 

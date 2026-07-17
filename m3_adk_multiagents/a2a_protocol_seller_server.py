@@ -233,7 +233,7 @@ class SellerADKA2AExecutor(AgentExecutor):
 
             agent_message = updater.new_agent_message(
                 parts=[TextPart(text=json.dumps(response_payload))],
-                metadata={"protocol": "a2a", "runtime": "adk-openai"},
+                metadata={"protocol": "a2a", "runtime": "adk-lmstudio"},
             )
             # Complete task with one final structured response payload.
             await updater.complete(agent_message)
@@ -242,14 +242,14 @@ class SellerADKA2AExecutor(AgentExecutor):
             # Contract violations are returned as task failures with explicit message.
             agent_message = updater.new_agent_message(
                 parts=[TextPart(text=f"ERROR: Invalid buyer envelope. {error}")],
-                metadata={"protocol": "a2a", "runtime": "adk-openai", "status": "error"},
+                metadata={"protocol": "a2a", "runtime": "adk-lmstudio", "status": "error"},
             )
             await updater.failed(message=agent_message)
         except Exception as error:
             # Surface failures to client as task-failed responses (not silent drops).
             agent_message = updater.new_agent_message(
                 parts=[TextPart(text=f"ERROR: {error}")],
-                metadata={"protocol": "a2a", "runtime": "adk-openai", "status": "error"},
+                metadata={"protocol": "a2a", "runtime": "adk-lmstudio", "status": "error"},
             )
             await updater.failed(message=agent_message)
 
@@ -257,7 +257,7 @@ class SellerADKA2AExecutor(AgentExecutor):
         updater = TaskUpdater(event_queue, task_id=context.task_id, context_id=context.context_id)
         cancel_message = updater.new_agent_message(
             parts=[TextPart(text="Request cancelled by client")],
-            metadata={"protocol": "a2a", "runtime": "adk-openai", "status": "cancelled"},
+            metadata={"protocol": "a2a", "runtime": "adk-lmstudio", "status": "cancelled"},
         )
         await updater.cancel(message=cancel_message)
 
@@ -267,10 +267,6 @@ async def main() -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=9102)
     args = parser.parse_args()
-
-    if not os.environ.get("OPENAI_API_KEY"):
-        print("OPENAI_API_KEY is not set. Set it before starting A2A seller server.")
-        raise SystemExit(1)
 
     base_url = f"http://{args.host}:{args.port}"
     # Agent card is the discovery metadata clients fetch before messaging.

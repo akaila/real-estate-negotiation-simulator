@@ -34,7 +34,15 @@ def send(proc: subprocess.Popen, payload: dict) -> None:
 def recv(proc: subprocess.Popen) -> dict:
     line = proc.stdout.readline()
     if not line:
-        raise RuntimeError("Server closed stdout")
+        exit_code = proc.poll()
+        server_stderr = ""
+        if exit_code is not None and proc.stderr is not None:
+            server_stderr = proc.stderr.read().strip()
+
+        detail = f" (exit code {exit_code})" if exit_code is not None else ""
+        if server_stderr:
+            raise RuntimeError(f"Server closed stdout{detail}. Stderr:\n{server_stderr}")
+        raise RuntimeError(f"Server closed stdout{detail}")
     msg = json.loads(line)
     print(f"\n<<< server -> client\n{json.dumps(msg, indent=2)}")
     return msg
@@ -45,7 +53,7 @@ def main() -> None:
         [sys.executable, str(PRICING_SERVER)],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
         text=True,
         bufsize=1,
     )

@@ -41,6 +41,8 @@ from google.adk.tools.mcp_tool.mcp_toolset import (
 from google.adk.tools.tool_context import ToolContext
 from pydantic import BaseModel, Field, ValidationError
 
+from m3_adk_multiagents.lmstudio_config import setup_lmstudio_model
+
 # Seller may use both pricing and inventory tools (including its private
 # floor-price tool). Anything else is denied via before_tool_callback.
 _SELLER_ALLOWED_TOOLS = {
@@ -71,8 +73,7 @@ LISTING_PRICE = 485_000
 MINIMUM_PRICE = 445_000
 IDEAL_PRICE = 465_000
 
-# ADK provider-style model id used by google-adk + litellm bridge.
-OPENAI_MODEL = "openai/gpt-4o"
+OPENAI_MODEL = setup_lmstudio_model()
 APP_NAME = "real_estate_negotiation_seller"
 
 

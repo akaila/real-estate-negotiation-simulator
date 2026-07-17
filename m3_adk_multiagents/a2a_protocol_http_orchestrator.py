@@ -39,6 +39,10 @@ if str(REPO_ROOT) not in sys.path:
 # Load environment from repo root so this file works even when launched from subfolders.
 load_dotenv(REPO_ROOT / ".env")
 
+from m3_adk_multiagents.lmstudio_config import configure_openai_compat_env
+
+configure_openai_compat_env()
+
 from m3_adk_multiagents.buyer_adk import BuyerAgentADK
 
 
@@ -160,10 +164,6 @@ async def main() -> None:
     parser.add_argument("--rounds", type=int, default=5)
     parser.add_argument("--session", default=None)
     args = parser.parse_args()
-
-    if not os.environ.get("OPENAI_API_KEY"):
-        print("OPENAI_API_KEY is not set. Set it before running this demo.")
-        raise SystemExit(1)
 
     session_id = args.session or f"a2a_http_{uuid.uuid4().hex[:8]}"
     state = ADKOrchestrationState(session_id=session_id)
