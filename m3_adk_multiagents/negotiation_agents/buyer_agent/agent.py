@@ -25,7 +25,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from m3_adk_multiagents.model_provider_config import setup_model
+from common.model_provider_config import setup_model
 
 _PRICING_SERVER = str(
     _REPO_ROOT / "m2_mcp" / "pricing_server.py"

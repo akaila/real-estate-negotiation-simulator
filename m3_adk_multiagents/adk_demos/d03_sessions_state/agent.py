@@ -15,7 +15,7 @@ Run:
 
 import os
 
-from model_provider_config import setup_model
+from common.model_provider_config import setup_model
 
 from google.adk.agents import LlmAgent
 from google.adk.tools.tool_context import ToolContext

@@ -42,10 +42,18 @@ COMPARE WITH:
 
 import os
 import re
+import sys
 from typing import Optional, Tuple
+from pathlib import Path
 
 from dotenv import load_dotenv
 from openai import OpenAI
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from common.model_provider_config import resolve_openai_client_config
 
 load_dotenv()
 
@@ -54,7 +62,8 @@ load_dotenv()
 # One shared client -- no retry logic, no error handling (PROBLEM #7)
 # ─────────────────────────────────────────────────────────────────────────────
 
-_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+_, OPENAI_API_KEY = resolve_openai_client_config(default_api_key="")
+_client = OpenAI(api_key=OPENAI_API_KEY)
 
 
 def _call_llm(prompt: str) -> str:

@@ -11,7 +11,7 @@ Run:
 import asyncio
 import os
 
-from m3_adk_multiagents.model_provider_config import setup_model
+from common.model_provider_config import setup_model
 from pathlib import Path
 
 from dotenv import load_dotenv

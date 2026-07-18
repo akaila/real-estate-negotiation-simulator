@@ -36,7 +36,7 @@ if str(REPO_ROOT) not in sys.path:
 from dotenv import load_dotenv
 load_dotenv(REPO_ROOT / ".env")
 
-from m3_adk_multiagents.model_provider_config import configure_openai_compat_env, resolve_model_id
+from common.model_provider_config import configure_openai_compat_env, resolve_model_id
 
 LMSTUDIO_BASE_URL = configure_openai_compat_env()
 ACTIVE_MODEL = resolve_model_id().removeprefix("openai/")

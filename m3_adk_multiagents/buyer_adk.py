@@ -44,7 +44,7 @@ from google.adk.tools.mcp_tool.mcp_toolset import (
 from google.adk.tools.tool_context import ToolContext
 from pydantic import BaseModel, Field, ValidationError
 
-from m3_adk_multiagents.model_provider_config import setup_model
+from common.model_provider_config import setup_model
 
 # Buyer is allowed to call only pricing tools — never the seller-private
 # inventory tools (information asymmetry enforced via callback, not trust).

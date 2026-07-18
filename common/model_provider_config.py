@@ -1,4 +1,4 @@
-"""Shared LM Studio/OpenAI-compatible configuration helpers for ADK demos."""
+"""Shared LM Studio/OpenAI-compatible configuration helpers for workshop demos."""
 
 from __future__ import annotations
 
@@ -63,3 +63,14 @@ def setup_model(
     """Return model id, preferring OpenAI config and falling back to LM Studio."""
     configure_openai_compat_env()
     return resolve_model_id(default_model=default_model, include_agent_model=include_agent_model)
+
+
+def resolve_openai_client_config(
+    base_url: str | None = None,
+    api_key: str | None = None,
+    default_api_key: str = "lm-studio",
+) -> tuple[str | None, str]:
+    """Return resolved OpenAI-compatible base URL and API key for client initialization."""
+    resolved_base_url = configure_openai_compat_env(base_url=base_url, api_key=api_key)
+    resolved_api_key = (os.environ.get("OPENAI_API_KEY") or "").strip() or default_api_key
+    return resolved_base_url, resolved_api_key

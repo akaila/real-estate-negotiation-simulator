@@ -41,7 +41,7 @@ from google.adk.tools.mcp_tool.mcp_toolset import (
 from google.adk.tools.tool_context import ToolContext
 from pydantic import BaseModel, Field, ValidationError
 
-from m3_adk_multiagents.model_provider_config import setup_model
+from common.model_provider_config import setup_model
 
 # Seller may use both pricing and inventory tools (including its private
 # floor-price tool). Anything else is denied via before_tool_callback.

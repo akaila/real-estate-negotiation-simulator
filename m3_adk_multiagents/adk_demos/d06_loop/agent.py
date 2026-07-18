@@ -20,7 +20,7 @@ from google.adk.agents.callback_context import CallbackContext
 
 import os
 
-from model_provider_config import setup_model
+from common.model_provider_config import setup_model
 
 MODEL = setup_model(include_agent_model=True)
 

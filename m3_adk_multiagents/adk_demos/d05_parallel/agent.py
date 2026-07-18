@@ -17,7 +17,7 @@ from google.adk.agents import LlmAgent, ParallelAgent
 
 import os
 
-from model_provider_config import setup_model
+from common.model_provider_config import setup_model
 
 MODEL = setup_model(include_agent_model=True)
 

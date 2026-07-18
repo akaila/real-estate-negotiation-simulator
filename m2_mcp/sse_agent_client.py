@@ -2,7 +2,7 @@
 SSE MCP Agent Client
 ====================
 An LLM-powered agent that connects to our real estate MCP servers running
-in SSE (HTTP) mode and lets a local LM Studio model decide which tools to call based on
+in SSE (HTTP) mode and lets a configured OpenAI-compatible model decide which tools to call based on
 your natural language query.
 
 WHY SSE?
@@ -49,6 +49,8 @@ from openai import AsyncOpenAI
 from mcp import ClientSession
 from mcp.client.sse import sse_client
 
+from common.model_provider_config import resolve_openai_client_config, setup_model
+
 
 # ─── Env loading ──────────────────────────────────────────────────────────────
 
@@ -74,9 +76,8 @@ def _load_env_file_if_present(env_path: str = ".env") -> None:
 REPO_ROOT = Path(__file__).resolve().parents[1]
 _load_env_file_if_present(str(REPO_ROOT / ".env"))
 
-LMSTUDIO_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://localhost:1234/v1")
-LMSTUDIO_MODEL = os.environ.get("LMSTUDIO_MODEL")
-PREFERRED_LOCAL_MODEL = "google/gemma-4-26b-a4b"
+OPENAI_BASE_URL, OPENAI_API_KEY = resolve_openai_client_config()
+MODEL_NAME = setup_model().removeprefix("openai/")
 
 SAMPLE_QUERIES_PRICING = [
     "What is the market price for 742 Evergreen Terrace, Austin, TX 78701? It's a single-family home.",
@@ -137,24 +138,6 @@ def _sanitize_message_for_local_api(message: dict) -> dict:
     return cleaned
 
 
-async def _resolve_local_model(client: AsyncOpenAI) -> str:
-    if LMSTUDIO_MODEL:
-        return LMSTUDIO_MODEL
-
-    models = await client.models.list()
-    available_models = [item.id for item in models.data]
-    if not available_models:
-        raise RuntimeError(
-            f"No local models were reported by {LMSTUDIO_BASE_URL}. Load a model in LM Studio or set LMSTUDIO_MODEL."
-        )
-
-    print(f"[Agent] Available local models: {', '.join(available_models)}")
-    if PREFERRED_LOCAL_MODEL in available_models:
-        return PREFERRED_LOCAL_MODEL
-
-    return available_models[0]
-
-
 # ─── Agent loop for a single SSE server ───────────────────────────────────────
 
 async def run_agent_on_server(
@@ -194,7 +177,7 @@ async def run_agent(
 ) -> str:
     """
     Agentic loop: connect to real estate MCP servers via SSE,
-    let a local model decide which tools to call, execute them, produce an answer.
+    let a model decide which tools to call, execute them, produce an answer.
     """
     print()
     print("=" * 65)
@@ -247,10 +230,11 @@ async def run_agent(
         return ""
 
     # ── Agent loop ────────────────────────────────────────────────────
-    lmstudio_api_key = os.environ.get("LMSTUDIO_API_KEY", "").strip() or "lm-studio"
-    client = AsyncOpenAI(api_key=lmstudio_api_key, base_url=LMSTUDIO_BASE_URL)
-    model_name = await _resolve_local_model(client)
-    print(f"[Agent] Using local model: {model_name}")
+    client = AsyncOpenAI(
+        api_key=OPENAI_API_KEY,
+        base_url=OPENAI_BASE_URL,
+    )
+    print(f"[Agent] Using model: {MODEL_NAME}")
 
     messages: list[dict] = [
         {
@@ -267,10 +251,10 @@ async def run_agent(
 
     max_iterations = 5
     for iteration in range(1, max_iterations + 1):
-        print(f"[Agent] Iteration {iteration}: calling local model...")
+        print(f"[Agent] Iteration {iteration}: calling model...")
 
         response = await client.chat.completions.create(
-            model=model_name,
+            model=MODEL_NAME,
             messages=messages,
             tools=openai_tools,
             temperature=0.2,
@@ -326,7 +310,7 @@ async def run_agent(
         "content": "Please summarize your findings based on the data you've gathered so far.",
     })
     response = await client.chat.completions.create(
-        model=model_name,
+        model=MODEL_NAME,
         messages=messages,
         temperature=0.2,
     )

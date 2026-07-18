@@ -39,7 +39,7 @@ if str(REPO_ROOT) not in sys.path:
 # Load environment from repo root so this file works even when launched from subfolders.
 load_dotenv(REPO_ROOT / ".env")
 
-from m3_adk_multiagents.model_provider_config import configure_openai_compat_env
+from common.model_provider_config import configure_openai_compat_env
 
 configure_openai_compat_env()
 
