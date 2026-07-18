@@ -30,8 +30,8 @@ if str(_REPO_ROOT) not in sys.path:
 
 from m3_adk_multiagents.model_provider_config import setup_model
 
-_PRICING_SERVER = str(_REPO_ROOT / "m1_mcp" / "pricing_server.py")
-_INVENTORY_SERVER = str(_REPO_ROOT / "m1_mcp" / "inventory_server.py")
+_PRICING_SERVER = str(_REPO_ROOT / "m2_mcp" / "pricing_server.py")
+_INVENTORY_SERVER = str(_REPO_ROOT / "m2_mcp" / "inventory_server.py")
 
 # Seller has access to inventory tools (including private floor price).
 _SELLER_ALLOWED_TOOLS = {

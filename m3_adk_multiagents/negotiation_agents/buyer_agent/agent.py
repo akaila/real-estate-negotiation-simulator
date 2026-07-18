@@ -28,7 +28,7 @@ if str(_REPO_ROOT) not in sys.path:
 from m3_adk_multiagents.model_provider_config import setup_model
 
 _PRICING_SERVER = str(
-    _REPO_ROOT / "m1_mcp" / "pricing_server.py"
+    _REPO_ROOT / "m2_mcp" / "pricing_server.py"
 )
 
 # Information asymmetry: buyer can only see market-facing pricing tools.

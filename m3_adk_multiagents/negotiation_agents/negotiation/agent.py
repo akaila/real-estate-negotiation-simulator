@@ -35,8 +35,8 @@ from m3_adk_multiagents.model_provider_config import setup_model
 
 MODEL = setup_model(include_agent_model=True)
 
-_PRICING_SERVER = str(_REPO_ROOT / "m1_mcp" / "pricing_server.py")
-_INVENTORY_SERVER = str(_REPO_ROOT / "m1_mcp" / "inventory_server.py")
+_PRICING_SERVER = str(_REPO_ROOT / "m2_mcp" / "pricing_server.py")
+_INVENTORY_SERVER = str(_REPO_ROOT / "m2_mcp" / "inventory_server.py")
 
 # --- Tool allowlists (information asymmetry) ---
 
