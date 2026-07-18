@@ -41,7 +41,7 @@ from google.adk.tools.mcp_tool.mcp_toolset import (
 from google.adk.tools.tool_context import ToolContext
 from pydantic import BaseModel, Field, ValidationError
 
-from m3_adk_multiagents.lmstudio_config import setup_lmstudio_model
+from m3_adk_multiagents.model_provider_config import setup_model
 
 # Seller may use both pricing and inventory tools (including its private
 # floor-price tool). Anything else is denied via before_tool_callback.
@@ -73,7 +73,7 @@ LISTING_PRICE = 485_000
 MINIMUM_PRICE = 445_000
 IDEAL_PRICE = 465_000
 
-OPENAI_MODEL = setup_lmstudio_model()
+OPENAI_MODEL = setup_model()
 APP_NAME = "real_estate_negotiation_seller"
 
 

@@ -39,7 +39,7 @@ if str(REPO_ROOT) not in sys.path:
 # Load OPENAI_API_KEY and other local vars from repo-root .env.
 load_dotenv(REPO_ROOT / ".env")
 
-from m3_adk_multiagents.lmstudio_config import configure_openai_compat_env
+from m3_adk_multiagents.model_provider_config import configure_openai_compat_env
 
 configure_openai_compat_env()
 

@@ -16,7 +16,7 @@ Run:
 
 import os
 
-from lmstudio_config import setup_lmstudio_model
+from model_provider_config import setup_model
 import sys
 from pathlib import Path
 
@@ -31,7 +31,7 @@ _PRICING_SERVER = str(
     Path(__file__).resolve().parents[3] / "m2_mcp" / "pricing_server.py"
 )
 
-MODEL = setup_lmstudio_model(include_agent_model=True)
+MODEL = setup_model(include_agent_model=True)
 
 root_agent = LlmAgent(
     name="mcp_tools_agent",

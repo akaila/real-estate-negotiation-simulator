@@ -26,9 +26,9 @@ from google.adk.tools.tool_context import ToolContext
 
 import os
 
-from lmstudio_config import setup_lmstudio_model
+from model_provider_config import setup_model
 
-MODEL = setup_lmstudio_model(include_agent_model=True)
+MODEL = setup_model(include_agent_model=True)
 ALLOWED_TOOLS = {"get_quick_estimate"}
 SSN_RE = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
 

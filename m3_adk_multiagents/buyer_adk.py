@@ -44,7 +44,7 @@ from google.adk.tools.mcp_tool.mcp_toolset import (
 from google.adk.tools.tool_context import ToolContext
 from pydantic import BaseModel, Field, ValidationError
 
-from m3_adk_multiagents.lmstudio_config import setup_lmstudio_model
+from m3_adk_multiagents.model_provider_config import setup_model
 
 # Buyer is allowed to call only pricing tools — never the seller-private
 # inventory tools (information asymmetry enforced via callback, not trust).
@@ -71,7 +71,7 @@ PROPERTY_ADDRESS = "742 Evergreen Terrace, Austin, TX 78701"
 LISTING_PRICE = 485_000
 BUYER_BUDGET = 460_000
 
-OPENAI_MODEL = setup_lmstudio_model()
+OPENAI_MODEL = setup_model()
 
 APP_NAME = "real_estate_negotiation_buyer"
 

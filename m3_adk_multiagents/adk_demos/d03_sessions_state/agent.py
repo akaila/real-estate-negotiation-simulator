@@ -15,7 +15,7 @@ Run:
 
 import os
 
-from lmstudio_config import setup_lmstudio_model
+from model_provider_config import setup_model
 
 from google.adk.agents import LlmAgent
 from google.adk.tools.tool_context import ToolContext
@@ -41,7 +41,7 @@ def get_offer_history(tool_context: ToolContext) -> dict:
     return {"offers": history, "total_across_sessions": total}
 
 
-MODEL = setup_lmstudio_model(include_agent_model=True)
+MODEL = setup_model(include_agent_model=True)
 
 root_agent = LlmAgent(
     name="stateful_agent",

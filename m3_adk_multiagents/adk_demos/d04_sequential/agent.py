@@ -19,9 +19,9 @@ from google.adk.agents import LlmAgent, SequentialAgent
 
 import os
 
-from lmstudio_config import setup_lmstudio_model
+from model_provider_config import setup_model
 
-MODEL = setup_lmstudio_model(include_agent_model=True)
+MODEL = setup_model(include_agent_model=True)
 
 market_brief = LlmAgent(
     name="market_brief",

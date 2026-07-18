@@ -16,7 +16,7 @@ Run:
 import asyncio
 import os
 
-from m3_adk_multiagents.lmstudio_config import setup_lmstudio_model
+from m3_adk_multiagents.model_provider_config import setup_model
 import re
 from pathlib import Path
 
@@ -31,7 +31,7 @@ from google.genai.types import Content, Part
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(REPO_ROOT / ".env")
-MODEL = setup_lmstudio_model()
+MODEL = setup_model()
 APP = "demo_callbacks"
 
 ALLOWED_TOOLS = {"get_quick_estimate"}
