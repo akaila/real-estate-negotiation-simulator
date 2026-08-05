@@ -139,15 +139,26 @@ def _parse_strict_json_output(raw_text: str) -> SellerStructuredOutput:
     to the buyer. In A2A, the buyer parses this output over HTTP — one bad field
     would crash the entire orchestration loop.
     """
-    try:
-        parsed = json.loads(raw_text)
-    except json.JSONDecodeError as error:
-        raise ValueError(f"Model output is not valid JSON: {error}") from error
+    decoder = json.JSONDecoder()
+    validation_error: ValidationError | None = None
 
-    try:
-        return SellerStructuredOutput.model_validate(parsed)
-    except ValidationError as error:
-        raise ValueError(f"Model output failed SellerStructuredOutput validation: {error}") from error
+    for index, character in enumerate(raw_text):
+        if character != "{":
+            continue
+        try:
+            parsed, _ = decoder.raw_decode(raw_text[index:])
+        except json.JSONDecodeError:
+            continue
+        try:
+            return SellerStructuredOutput.model_validate(parsed)
+        except ValidationError as error:
+            validation_error = error
+
+    if validation_error is not None:
+        raise ValueError(
+            f"Model output failed SellerStructuredOutput validation: {validation_error}"
+        ) from validation_error
+    raise ValueError("Model output does not contain a valid JSON object")
 
 
 def _format_buyer_envelope_for_seller(buyer_message: dict, round_num: int) -> str:

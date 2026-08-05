@@ -199,10 +199,25 @@ class SellerADKA2AExecutor(AgentExecutor):
         incoming_text = context.get_user_input().strip()
 
         try:
-            # Validate incoming JSON text against the buyer envelope contract.
-            # If the buyer sends malformed JSON or missing fields, this raises
-            # and we return a task-failed response — no silent corruption.
-            parsed_buyer = BuyerEnvelope.model_validate(json.loads(incoming_text))
+            incoming_data: dict[str, Any] | None = None
+            if context.message is not None:
+                for part in context.message.parts:
+                    if isinstance(part.root, DataPart):
+                        incoming_data = dict(part.root.data)
+                        break
+
+            if incoming_data is None:
+                incoming_data = json.loads(incoming_text)
+            else:
+                nested_offer = incoming_data.get("offer")
+                if isinstance(nested_offer, dict):
+                    incoming_data = dict(nested_offer)
+                incoming_data.setdefault("session_id", context.context_id or context.task_id)
+                incoming_data.setdefault("message", incoming_text)
+
+            # Validate either JSON-in-text or a structured A2A DataPart against
+            # the same buyer envelope contract.
+            parsed_buyer = BuyerEnvelope.model_validate(incoming_data)
 
             # One-turn processing over HTTP; multi-turn continuity is preserved
             # by the session registry (same SellerAgentADK instance across rounds).

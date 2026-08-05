@@ -138,15 +138,26 @@ def _parse_strict_json_output(raw_text: str) -> BuyerStructuredOutput:
     and the negotiation produces meaningless results with no error trace.
     Fail-fast here means bugs surface at the source, not downstream.
     """
-    try:
-        parsed = json.loads(raw_text)
-    except json.JSONDecodeError as error:
-        raise ValueError(f"Model output is not valid JSON: {error}") from error
+    decoder = json.JSONDecoder()
+    validation_error: ValidationError | None = None
 
-    try:
-        return BuyerStructuredOutput.model_validate(parsed)
-    except ValidationError as error:
-        raise ValueError(f"Model output failed BuyerStructuredOutput validation: {error}") from error
+    for index, character in enumerate(raw_text):
+        if character != "{":
+            continue
+        try:
+            parsed, _ = decoder.raw_decode(raw_text[index:])
+        except json.JSONDecodeError:
+            continue
+        try:
+            return BuyerStructuredOutput.model_validate(parsed)
+        except ValidationError as error:
+            validation_error = error
+
+    if validation_error is not None:
+        raise ValueError(
+            f"Model output failed BuyerStructuredOutput validation: {validation_error}"
+        ) from validation_error
+    raise ValueError("Model output does not contain a valid JSON object")
 
 
 def _format_seller_envelope_for_buyer(seller_message: dict, round_num: int) -> str:

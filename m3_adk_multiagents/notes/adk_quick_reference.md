@@ -1,4 +1,4 @@
-# ADK & A2A Quick Reference — Instructor Cheat Sheet
+w# ADK & A2A Quick Reference — Instructor Cheat Sheet
 
 Use this as a 5-minute verbal walkthrough before showing Module 3 code.
 Each construct has: what it is, the import, and the minimal usage from our repo.

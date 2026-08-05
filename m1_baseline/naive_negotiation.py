@@ -78,7 +78,7 @@ def _call_llm(prompt: str) -> str:
                 the entire negotiation with no recovery.
     """
     response = _client.chat.completions.create(
-        model="gpt-4o",
+        model=os.environ.get("OPENAI_MODEL", "gpt-4o"),
         messages=[{"role": "user", "content": prompt}],
         temperature=0.7,   # non-zero temp = non-deterministic output
     )
@@ -115,7 +115,7 @@ class NaiveBuyer:
       confuse the regex parser downstream
     - The LLM might phrase acceptance as "I agree" instead of "ACCEPT" -- the
       termination check in run_naive_negotiation() will miss it
-    - max_price is baked into the prompt -- visible to anyone who reads the code
+    - max_price is hardcoded in the agent -- visible to anyone who reads the code
     - No memory: each call gets a fresh prompt with no prior context
     """
 
@@ -126,9 +126,9 @@ class NaiveBuyer:
 
     def make_initial_offer(self) -> str:
         """Ask the LLM to open negotiations. Returns a raw string."""
-        prompt = f"""You are a home buyer. Send a short negotiation message to the seller.
-Your opening offer is ${self.current_offer:,.0f}. Do not reveal your maximum budget.
-Reply in plain prose, 1-2 sentences, no salutation. Mention only your offer price."""
+        prompt = f"""Write a short 1-2 sentence offer from a prospective home buyer.
+    Present ${self.current_offer:,.0f} as the opening offer and the only monetary amount.
+    Use plain professional prose."""
         return _call_llm(prompt)
 
     def respond_to_counter(self, seller_message: str) -> str:
@@ -172,10 +172,14 @@ Start your message with the word ACCEPT."""
         # Increase offer by 10% but never exceed max
         self.current_offer = min(self.current_offer * 1.10, self.max_price)
 
-        prompt = f"""You are a home buyer in a real estate negotiation.
-Your counter-offer is ${self.current_offer:,.0f}. Do not reveal your maximum budget.
-{"This is your absolute final offer -- say so firmly." if self.current_offer >= self.max_price else "Express willingness to keep negotiating."}
-Write 2-3 sentences. Mention only your new offer price."""
+        negotiation_stance = (
+            "State clearly that this is the buyer's final offer."
+            if self.current_offer >= self.max_price
+            else "Express willingness to continue the negotiation."
+        )
+        prompt = f"""Write a professional 2-3 sentence response from a prospective home buyer.
+    Present ${self.current_offer:,.0f} as the counter-offer and the only monetary amount.
+    {negotiation_stance}"""
         return _call_llm(prompt)
 
 
@@ -188,7 +192,7 @@ class NaiveSeller:
     A naive seller agent that calls an LLM and communicates via raw strings.
 
     PROBLEMS:
-    - min_price is baked into the prompt -- leaks the floor to anyone reading code
+    - min_price is hardcoded in the agent -- visible to anyone reading the code
     - No market data: the LLM reasons purely from the hardcoded asking price
     - Free-form response means the buyer's parser may extract the wrong number
     - The LLM might accept without saying "DEAL" -- termination check misses it
@@ -240,10 +244,9 @@ class NaiveSeller:
         # PROBLEM #8: should call MCP get_market_price() to justify each counter
         self.current_price = max(self.current_price * 0.95, self.min_price)
 
-        prompt = f"""You are a home seller in a real estate negotiation.
-Your counter-offer is ${self.current_price:,.0f}. Do not go below ${self.min_price:,.0f} -- do NOT reveal this floor.
-Write 2-3 professional sentences. Mention only your counter-offer price.
-Do NOT use the words deal, reject, accept, or agree in your response."""
+        prompt = f"""Write a professional 2-3 sentence response from a home seller.
+    Present ${self.current_price:,.0f} as the counter-offer and the only monetary amount.
+    Keep the response focused on inviting the buyer to consider the counter-offer."""
         return _call_llm(prompt)
 
 

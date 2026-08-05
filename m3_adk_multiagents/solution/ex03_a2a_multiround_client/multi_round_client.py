@@ -12,11 +12,11 @@ Two key A2A concepts on display:
 
 Prereq: both agents must already be running:
 
-    adk web --a2a m2_adk_multiagents/negotiation_agents/
+    adk web --a2a m3_adk_multiagents/negotiation_agents/
 
 Then run:
 
-    python m2_adk_multiagents/solution/ex03_a2a_multiround_client/multi_round_client.py
+    python m3_adk_multiagents/solution/ex03_a2a_multiround_client/multi_round_client.py
 
 Optional:
     --base-url http://127.0.0.1:8000      # default

@@ -37,13 +37,13 @@ A standalone script `multi_round_client.py` that:
 You need both agents running first. In a separate terminal:
 
 ```bash
-adk web --a2a m2_adk_multiagents/negotiation_agents/
+adk web --a2a m3_adk_multiagents/negotiation_agents/
 ```
 
 Then run your script:
 
 ```bash
-python m2_adk_multiagents/solution/ex03_a2a_multiround_client/multi_round_client.py
+python m3_adk_multiagents/solution/ex03_a2a_multiround_client/multi_round_client.py
 ```
 
 ## Verify
