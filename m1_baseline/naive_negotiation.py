@@ -40,20 +40,22 @@ COMPARE WITH:
   python m3_adk_multiagents/a2a_protocol_seller_server.py  <- The fixed version
 """
 
-import os
 import re
 import sys
 from typing import Optional, Tuple
 from pathlib import Path
 
 from dotenv import load_dotenv
-from openai import OpenAI
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from common.model_provider_config import resolve_openai_client_config
+from common.model_provider_config import (
+    create_openai_compatible_client,
+    invoke_openai_compatible,
+    resolve_model_id,
+)
 
 load_dotenv()
 
@@ -62,8 +64,8 @@ load_dotenv()
 # One shared client -- no retry logic, no error handling (PROBLEM #7)
 # ─────────────────────────────────────────────────────────────────────────────
 
-_, OPENAI_API_KEY = resolve_openai_client_config(default_api_key="")
-_client = OpenAI(api_key=OPENAI_API_KEY)
+_client = create_openai_compatible_client()
+_model = resolve_model_id().removeprefix("openai/")
 
 
 def _call_llm(prompt: str) -> str:
@@ -77,12 +79,12 @@ def _call_llm(prompt: str) -> str:
     PROBLEM #7: Exceptions propagate uncaught -- one bad API call can crash
                 the entire negotiation with no recovery.
     """
-    response = _client.chat.completions.create(
-        model=os.environ.get("OPENAI_MODEL", "gpt-4o"),
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,   # non-zero temp = non-deterministic output
+    return invoke_openai_compatible(
+        prompt,
+        client=_client,
+        model=_model,
+        temperature=0.7,  # non-zero temp = non-deterministic output
     )
-    return response.choices[0].message.content  # raw string, no parsing
 
 
 # ─────────────────────────────────────────────────────────────────────────────
