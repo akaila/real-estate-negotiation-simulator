@@ -68,25 +68,6 @@ _client = create_openai_compatible_client()
 _model = resolve_model_id().removeprefix("openai/")
 
 
-def _call_llm(prompt: str) -> str:
-    """
-    Naive LLM call -- raw string in, raw string out.
-
-    PROBLEM #1: No response_format, no JSON schema, no structured output.
-                The model returns whatever it wants. We have to parse it.
-    PROBLEM #2: No validation. If the model hallucinates a price or omits one,
-                the caller has no way to know.
-    PROBLEM #7: Exceptions propagate uncaught -- one bad API call can crash
-                the entire negotiation with no recovery.
-    """
-    return invoke_openai_compatible(
-        prompt,
-        client=_client,
-        model=_model,
-        temperature=0.7,  # non-zero temp = non-deterministic output
-    )
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # PROPERTY CONTEXT (hardcoded -- PROBLEM #8)
 # In the real version these come from MCP servers (pricing_server.py,
@@ -131,7 +112,9 @@ class NaiveBuyer:
         prompt = f"""Write a short 1-2 sentence offer from a prospective home buyer.
     Present ${self.current_offer:,.0f} as the opening offer and the only monetary amount.
     Use plain professional prose."""
-        return _call_llm(prompt)
+        return invoke_openai_compatible(
+            prompt, client=_client, model=_model, temperature=0.7
+        )
 
     def respond_to_counter(self, seller_message: str) -> str:
         """
@@ -169,7 +152,9 @@ class NaiveBuyer:
             accept_prompt = f"""You are a home buyer. The seller has come down to ${seller_price:,.0f},
 which is within your budget. Write a 1-sentence acceptance message.
 Start your message with the word ACCEPT."""
-            return _call_llm(accept_prompt)
+            return invoke_openai_compatible(
+                accept_prompt, client=_client, model=_model, temperature=0.7
+            )
 
         # Increase offer by 10% but never exceed max
         self.current_offer = min(self.current_offer * 1.10, self.max_price)
@@ -182,7 +167,9 @@ Start your message with the word ACCEPT."""
         prompt = f"""Write a professional 2-3 sentence response from a prospective home buyer.
     Present ${self.current_offer:,.0f} as the counter-offer and the only monetary amount.
     {negotiation_stance}"""
-        return _call_llm(prompt)
+        return invoke_openai_compatible(
+            prompt, client=_client, model=_model, temperature=0.7
+        )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -249,7 +236,9 @@ class NaiveSeller:
         prompt = f"""Write a professional 2-3 sentence response from a home seller.
     Present ${self.current_price:,.0f} as the counter-offer and the only monetary amount.
     Keep the response focused on inviting the buyer to consider the counter-offer."""
-        return _call_llm(prompt)
+        return invoke_openai_compatible(
+            prompt, client=_client, model=_model, temperature=0.7
+        )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
