@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-from openai import OpenAI
+from openai import AsyncOpenAI, OpenAI
 
 DEFAULT_BASE_URL = "http://127.0.0.1:1234/v1"
 DEFAULT_LMSTUDIO_MODEL = "google/gemma-4-26b-a4b"
@@ -88,6 +88,18 @@ def create_openai_compatible_client(
         api_key=api_key,
     )
     return OpenAI(base_url=resolved_base_url, api_key=resolved_api_key)
+
+
+def create_async_openai_compatible_client(
+    base_url: str | None = None,
+    api_key: str | None = None,
+) -> AsyncOpenAI:
+    """Create an async client for OpenAI or an OpenAI-compatible server."""
+    resolved_base_url, resolved_api_key = resolve_openai_client_config(
+        base_url=base_url,
+        api_key=api_key,
+    )
+    return AsyncOpenAI(base_url=resolved_base_url, api_key=resolved_api_key)
 
 
 def invoke_openai_compatible(

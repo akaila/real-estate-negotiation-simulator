@@ -48,7 +48,7 @@ import sys
 from typing import Any
 from pathlib import Path
 
-from openai import AsyncOpenAI
+from dotenv import load_dotenv
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
@@ -57,37 +57,18 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from common.model_provider_config import resolve_openai_client_config, setup_model
+from common.model_provider_config import (
+    create_async_openai_compatible_client,
+    setup_model,
+)
 
 
-# ─── Env loading ──────────────────────────────────────────────────────────────
-
-def _load_env_file_if_present(env_path: str = ".env") -> None:
-    """Load KEY=VALUE pairs from a .env file. Existing env vars take priority."""
-    if not os.path.exists(env_path):
-        return
-    try:
-        with open(env_path, "r", encoding="utf-8") as f:
-            for raw_line in f:
-                line = raw_line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                key, value = line.split("=", 1)
-                key = key.strip()
-                value = value.strip().strip('"').strip("'")
-                if key and key not in os.environ:
-                    os.environ[key] = value
-    except OSError:
-        pass
-
-
-_load_env_file_if_present()
+load_dotenv(REPO_ROOT / ".env")
 
 
 # ─── Validation ───────────────────────────────────────────────────────────────
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip()
-OPENAI_BASE_URL, OPENAI_API_KEY = resolve_openai_client_config()
 MODEL_NAME = setup_model().removeprefix("openai/")
 
 _PLACEHOLDER_PREFIXES = ("your_token", "ghp_your", "<your", "TOKEN_HERE")
@@ -202,10 +183,7 @@ async def run_agent(query: str) -> str:
             tools_by_name = {t.name: t for t in mcp_tools}
 
             # ── 3. Start the agent loop ───────────────────────────────────
-            client = AsyncOpenAI(
-                api_key=OPENAI_API_KEY,
-                base_url=OPENAI_BASE_URL,
-            )
+            client = create_async_openai_compatible_client()
             print(f"[Agent] Using model: {MODEL_NAME}")
             messages: list[dict] = [
                 {
